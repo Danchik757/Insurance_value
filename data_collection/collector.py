@@ -51,15 +51,15 @@ class CSVDataSource(DataSource):
 
     def get_data(self, i, n):
         if i >= self.get_size() :
-            LOGGER.error("Attempting to read data outside of data source")
+            LOGGER.error("Попытка прочитать данные вне диапазона")
             return None
         
         if n <= 0 :
-            LOGGER.error("Attempting to read data with non-positive size")
+            LOGGER.error("Попытка прочитать данные не положительного размера")
             return None
         
         if i + n > self.get_size() :
-            LOGGER.warning("Trying to read data outside of data source, the data will be trimmed")
+            LOGGER.warning("Попытка прочитать данные вне диапазона, данные будут обрезаны")
 
         return self._data.iloc[i:min(i+n, self.get_size())]
 
@@ -68,14 +68,14 @@ class CompositeSource(DataSource):
         self.sources = sources
         self._total_size = sum(i.get_size() for i in self.sources)
         if len(self.sources) == 0 :
-            LOGGER.warning("Trying to create composite data source without any sources")
+            LOGGER.warning("Попытка создать составной источник данных без источников данных")
     
     def get_size(self):
         return self._total_size
 
     def get_data(self, i, n):
         if len(self.sources) == 0 :
-            LOGGER.error("Attempting to read data from composite data source without any sources")
+            LOGGER.error("Попытка прочитать из составного источника данных без источников данных")
             return None
 
         offset = 0
@@ -85,7 +85,7 @@ class CompositeSource(DataSource):
             offset += self.sources[idx].get_size()
             idx += 1
             if idx >= len(self.sources) :
-                LOGGER.error("Attempting to read data outside of data source")
+                LOGGER.error("Попытка прочитать вне диапазона")
                 return None
         
         compound = self.sources[idx].get_data(i - offset, min(self.sources[idx].get_size() + offset - i, n))
@@ -97,7 +97,7 @@ class CompositeSource(DataSource):
         
         while i + n > offset :
             if idx >= len(self.sources) :
-                LOGGER.warning("Trying to read data outside of data source, the data will be trimmed")
+                LOGGER.warning("Попытка прочитать данные вне диапазона, данные будут обрезаны")
                 break
 
             append = self.sources[idx].get_data(0, min(self.sources[idx].get_size(), i + n - offset))
@@ -162,11 +162,11 @@ def collect_data():
 
     metas = []
 
-    LOGGER.info("Data Collection began")
+    LOGGER.info("Data Collection начато")
     for batch in streamer.stream():
         try:
             storage.save_batch(batch)
-            LOGGER.info(f"Saving batch {batch["id"]} of size {len(batch["data"])}")
+            LOGGER.info(f"Сохранение батча {batch["id"]} резмера {len(batch["data"])}")
 
             if config["meta"]["compute_per_batch"]:
                 meta = {
@@ -175,10 +175,10 @@ def collect_data():
                     "version": VERSION
                 }
                 metas.append(meta)
-                LOGGER.info(f"Meta parameters for batch {batch["id"]}: timestamp={meta["timestamp"]}; sources={meta["sources"]}; version={meta["version"]}")
+                LOGGER.info(f"Метапараметры для батча {batch["id"]}: timestamp={meta["timestamp"]}; sources={meta["sources"]}; version={meta["version"]}")
 
         except Exception as e:
-            LOGGER.error(f"Exception processing batch {batch["id"]}: {e}", exc_info=True)
+            LOGGER.error(f"Ошибка при обработки батча {batch["id"]}: {e}", exc_info=True)
             break
 
     if not config["meta"]["compute_per_batch"] :
@@ -188,9 +188,9 @@ def collect_data():
             "version": VERSION
         }
         metas.append(meta)
-        LOGGER.info(f"Meta parameters for all batches: timestamp={meta["timestamp"]}; sources={meta["sources"]}; version={meta["version"]}")
+        LOGGER.info(f"Метапараметры для всех батчей: timestamp={meta["timestamp"]}; sources={meta["sources"]}; version={meta["version"]}")
 
-    LOGGER.info("Data Collection ended")
+    LOGGER.info("Data Collection закончено")
     return config["storage"]["path"], metas
 
 if __name__ == "__main__":
