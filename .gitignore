@@ -1,0 +1,14 @@
+data/raw/*
+!data/raw/.gitkeep
+data/cleaned/*
+!data/cleaned/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+models/versions/*
+!models/versions/.gitkeep
+models/*.pkl
+reports/*
+!reports/.gitkeep
+__pycache__/
+*.pyc
+.DS_Store
