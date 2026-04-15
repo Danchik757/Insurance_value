@@ -1,0 +1,18 @@
+dataset:
+  paths:
+    - "data/raw/motor_data11-14lats.csv"
+    - "data/raw/motor_data14-2018.csv"
+
+stream:
+  batch_size: 50000
+  delay_seconds: 0.5
+
+storage:
+  path: "data/raw/raw_data.db"
+
+meta:
+  compute_per_batch: true
+
+logging:
+  level: "INFO"
+  path: "collection.log"
