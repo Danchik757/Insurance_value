@@ -1,36 +1,14 @@
-import yaml
-import logging
-import sys
 from abc import ABC, abstractmethod
 import pandas as pd
 import time
 import sqlite3
 
+from utils.config import CONFIG
+from utils.logger import setup_logger
+
 VERSION = "1.0.0"
 
-def load_config(path="config.yaml"):
-    with open(path, "r") as f:
-        return yaml.safe_load(f)
-
 LOGGER = None
-
-def setup_logger(name: str, log_file: str, level: str = "INFO"):
-    logger = logging.getLogger(name)
-    logger.setLevel(getattr(logging, level.upper()))
-
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
-
-    fh = logging.FileHandler(log_file, encoding="utf-8")
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
-
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
-
-    return logger
 
 class DataSource(ABC):
     @abstractmethod
@@ -151,14 +129,13 @@ class DatabaseStorage:
 def collect_data():
     global LOGGER
 
-    config = load_config()
-    LOGGER = setup_logger("DataCollection", log_file=config["logging"]["path"], level=config["logging"]["level"])
+    LOGGER = setup_logger("DataCollection", log_file=CONFIG["logging"]["path"], level=CONFIG["logging"]["level"])
 
-    sources = CompositeSource([CSVDataSource(i) for i in config["dataset"]["paths"]])
+    sources = CompositeSource([CSVDataSource(i) for i in CONFIG["dataset"]["paths"]])
 
-    streamer = StreamEmulator(data_source=sources, batch_size=config["stream"]["batch_size"], delay=config["stream"]["delay_seconds"])
+    streamer = StreamEmulator(data_source=sources, batch_size=CONFIG["stream"]["batch_size"], delay=CONFIG["stream"]["delay_seconds"])
 
-    storage = DatabaseStorage(config["storage"]["path"])
+    storage = DatabaseStorage(CONFIG["storage"]["path"])
 
     metas = []
 
@@ -168,10 +145,10 @@ def collect_data():
             storage.save_batch(batch)
             LOGGER.info(f"Сохранение батча {batch["id"]} резмера {len(batch["data"])}")
 
-            if config["meta"]["compute_per_batch"]:
+            if CONFIG["meta"]["compute_per_batch"]:
                 meta = {
                     "timestamp": time.time(),
-                    "sources": config["dataset"]["paths"],
+                    "sources": CONFIG["dataset"]["paths"],
                     "version": VERSION
                 }
                 metas.append(meta)
@@ -181,17 +158,17 @@ def collect_data():
             LOGGER.error(f"Ошибка при обработки батча {batch["id"]}: {e}", exc_info=True)
             break
 
-    if not config["meta"]["compute_per_batch"] :
+    if not CONFIG["meta"]["compute_per_batch"] :
         meta = {
             "timestamp": time.time(),
-            "sources": config["dataset"]["paths"],
+            "sources": CONFIG["dataset"]["paths"],
             "version": VERSION
         }
         metas.append(meta)
         LOGGER.info(f"Метапараметры для всех батчей: timestamp={meta["timestamp"]}; sources={meta["sources"]}; version={meta["version"]}")
 
     LOGGER.info("Data Collection закончено")
-    return config["storage"]["path"], metas
+    return CONFIG["storage"]["path"], metas
 
 if __name__ == "__main__":
     collect_data()
