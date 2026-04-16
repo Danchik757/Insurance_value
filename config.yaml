@@ -8,7 +8,9 @@ stream:
   delay_seconds: 0.5
 
 storage:
-  path: "data/raw/raw_data.db"
+  path: "database.db"
+  raw_table: "raw_batches"
+  cleaned_table: "cleaned_batches"
 
 meta:
   compute_per_batch: true

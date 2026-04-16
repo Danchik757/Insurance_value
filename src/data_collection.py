@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
 import pandas as pd
 import time
-import sqlite3
 
-from utils.config import CONFIG
-from utils.logger import setup_logger
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../"))
+from src.utils.config import CONFIG
+from src.utils.logger import setup_logger
+from src.utils.storage import DatabaseStorage
 
 VERSION = "1.0.0"
 
@@ -111,21 +114,6 @@ class StreamEmulator:
 
             time.sleep(self.delay)
 
-class DatabaseStorage:
-    def __init__(self, db_path):
-        self.conn = sqlite3.connect(db_path)
-        self._init_db()
-
-    def _init_db(self):
-        cur = self.conn.cursor()
-        cur.execute("CREATE TABLE IF NOT EXISTS raw_batches (id INT PRIMARY KEY, data_json TEXT)")
-        self.conn.commit()
-
-    def save_batch(self, batch_data):
-        cur = self.conn.cursor()
-        cur.execute("INSERT OR REPLACE INTO raw_batches (id, data_json) VALUES (?, ?)", (batch_data["id"], batch_data["data"].to_json()))
-        self.conn.commit()
-
 def collect_data():
     global LOGGER
 
@@ -135,7 +123,7 @@ def collect_data():
 
     streamer = StreamEmulator(data_source=sources, batch_size=CONFIG["stream"]["batch_size"], delay=CONFIG["stream"]["delay_seconds"])
 
-    storage = DatabaseStorage(CONFIG["storage"]["path"])
+    storage = DatabaseStorage(CONFIG["storage"]["raw_table"])
 
     metas = []
 
