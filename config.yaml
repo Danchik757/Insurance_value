@@ -17,6 +17,43 @@ storage:
 logging:
   level: "INFO"
   path: "collection.log"
+  reports_dir: "reports"
+
+data_analysis:
+  quality:
+    thresholds:
+      max_null_ratio: 0.3
+      max_outlier_ratio: 0.05
+      min_unique_ratio: 0.01
+    numeric_columns: ["INSURED_VALUE", "PREMIUM", "PROD_YEAR", "SEATS_NUM", "CARRYING_CAPACITY", "CCM_TON"]
+    categorical_columns: ["SEX", "INSR_TYPE", "TYPE_VEHICLE", "MAKE", "USAGE"]
+    date_columns: ["INSR_BEGIN", "INSR_END"]
+
+  cleaning:
+    imputation_method: "median"
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+
+  eda:
+    enabled: true
+    max_categories: 15
+
+  feature_engineering:
+    enabled: true
+    features:
+      - "policy_duration_days"
+      - "premium_per_seat"
+      - "insured_value_per_ton"
+      - "claim_ratio"
+      - "is_claim"
+      - "premium_log"
+
+  drift_detection:
+    enabled: true
+    reference_batches: 5
+    method: "psi"
+    psi_threshold: 0.2
+    monitor_columns: ["INSURED_VALUE", "PREMIUM", "CLAIM_PAID", "SEATS_NUM", "TYPE_VEHICLE", "USAGE"]
 
 data_preparation:
   processed_a: "data/processed/prepared_A.csv"

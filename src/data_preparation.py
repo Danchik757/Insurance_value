@@ -41,6 +41,30 @@ def load_data():
     return df
 
 
+def add_features(df):
+    target = CONFIG["data_preparation"]["target_column"]
+
+    if "policy_duration_days" not in df.columns:
+        df["policy_duration_days"] = (df["INSR_END"] - df["INSR_BEGIN"]).dt.days.fillna(365)
+
+    if "premium_per_seat" not in df.columns:
+        df["premium_per_seat"] = df["PREMIUM"] / (df["SEATS_NUM"] + 1e-6)
+
+    if "insured_value_per_ton" not in df.columns:
+        df["insured_value_per_ton"] = df["INSURED_VALUE"] / (df["CCM_TON"] + 1e-6)
+
+    if "claim_ratio" not in df.columns and target in df.columns:
+        df["claim_ratio"] = (df[target] / (df["PREMIUM"] + 1e-6)).clip(0, 10)
+
+    if "is_claim" not in df.columns and target in df.columns:
+        df["is_claim"] = (df[target] > 0).astype(int)
+
+    if "premium_log" not in df.columns:
+        df["premium_log"] = np.log(df["PREMIUM"] + 1e-6)
+
+    return df
+
+
 def prepare_data():
     global LOGGER
     LOGGER = setup_logger(
@@ -61,11 +85,12 @@ def prepare_data():
     # Пропуски в целевой переменной — нет выплаты, значит 0
     df[target] = df[target].fillna(0)
 
-    # Парсим даты и создаём признак длительности страховки
-    df["INSR_BEGIN"] = pd.to_datetime(df["INSR_BEGIN"], format=date_fmt, errors="coerce")
-    df["INSR_END"] = pd.to_datetime(df["INSR_END"], format=date_fmt, errors="coerce")
-    df["INSR_DURATION"] = (df["INSR_END"] - df["INSR_BEGIN"]).dt.days
+    # парсим даты
+    df["INSR_BEGIN"] = pd.to_datetime(df["INSR_BEGIN"], errors="coerce")
+    df["INSR_END"] = pd.to_datetime(df["INSR_END"], errors="coerce")
     df["INSR_YEAR"] = df["INSR_BEGIN"].dt.year
+
+    df = add_features(df)
 
     # Сортируем по времени для временного разбиения
     df = df.sort_values("INSR_BEGIN").reset_index(drop=True)
@@ -94,14 +119,14 @@ def prepare_data():
 
     feature_cols = [c for c in df.columns if c != target]
 
-    # Вариант A — StandardScaler (нормализация по стандартному отклонению)
+    # вариант A — StandardScaler
     df_a = df.copy()
     scaler_a = StandardScaler()
     df_a[feature_cols] = scaler_a.fit_transform(df_a[feature_cols])
     with open(os.path.join(models_dir, "scaler_A.pkl"), "wb") as f:
         pickle.dump(scaler_a, f)
 
-    # Вариант B — MinMaxScaler (масштабирование в диапазон [0, 1])
+    # вариант B — MinMaxScaler
     df_b = df.copy()
     scaler_b = MinMaxScaler()
     df_b[feature_cols] = scaler_b.fit_transform(df_b[feature_cols])

@@ -31,7 +31,6 @@ def validate_models():
     target = CONFIG["data_preparation"]["target_column"]
     train_split = CONFIG["model_training"]["train_split"]
 
-    # Загружаем подготовленные данные и воссоздаём тестовую выборку
     df = pd.read_csv(processed_a)
     X = df.drop(columns=[target])
     y = df[target]
@@ -70,11 +69,9 @@ def validate_models():
             best_mae = mae
             best_model_file = name
 
-    # Сохраняем метрики всех моделей
     with open(os.path.join(REPORTS_DIR, "validation_results.json"), "w") as f:
         json.dump(results, f, indent=2)
 
-    # Сохраняем имя лучшей модели
     best_info = {"best_model": best_model_file, "mae": round(best_mae, 4)}
     with open(os.path.join(REPORTS_DIR, "best_model.json"), "w") as f:
         json.dump(best_info, f, indent=2)
