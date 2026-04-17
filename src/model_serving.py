@@ -136,7 +136,7 @@ def predict(input_path):
     # Логируем производительность
     log_entry = {
         "timestamp": datetime.datetime.now().isoformat(),
-        "input_file": input_path,
+        "input_file": str(input_path),
         "rows_predicted": len(df_raw),
         "elapsed_seconds": round(elapsed, 4),
         "peak_memory_mb": round(peak / 1024 / 1024, 4),
