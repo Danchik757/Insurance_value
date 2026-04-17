@@ -30,6 +30,7 @@ Insurance_value/
 
 ## Датасет
 
+Источник: [Vehicle Insurance Data — Kaggle](https://www.kaggle.com/datasets/imtkaggleteam/vehicle-insurance-data)  
 Файл: `motor_data14-2018.csv` (~508 000 строк, 16 признаков)  
 Целевая переменная: `CLAIM_PAID` — сумма страховой выплаты (0 если выплат не было)
 
