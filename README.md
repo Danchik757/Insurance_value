@@ -40,22 +40,6 @@ Insurance_value/
 pip install -r requirements.txt
 ```
 
-## Загрузка датасета
-
-1. Скачать токен на [kaggle.com](https://www.kaggle.com) → Settings → API → Create New Token (файл `kaggle.json`)
-
-2. Установить Kaggle CLI и скачать датасет:
-
-```bash
-pip install kaggle
-
-mkdir -p ~/.kaggle
-cp kaggle.json ~/.kaggle/
-chmod 600 ~/.kaggle/kaggle.json
-
-kaggle datasets download -d imtkaggleteam/vehicle-insurance-data -p data/raw/ --unzip
-```
-
 ## Запуск обучения (вручную, по этапам)
 
 Все команды выполнять из корня репозитория `Insurance_value/`.
