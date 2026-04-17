@@ -21,7 +21,6 @@ Insurance_value/
 │       └── storage.py        # работа с SQLite БД
 ├── data/
 │   ├── raw/            # исходные CSV файлы
-│   ├── cleaned/        # очищенные данные (fallback от Stage 2)
 │   └── processed/      # подготовленные данные для обучения
 ├── models/
 │   └── versions/       # версии обученных моделей
@@ -76,13 +75,13 @@ python src/model_serving.py
 ## Запуск через run.py
 
 ```bash
-# Полный цикл обучения
-python run.py
+# Вывести список доступных опций
+python run.py --help
 
 # Предсказание (inference)
 python run.py -mode "inference" -file "./data/raw/motor_data14-2018.csv"
 
-# Полный цикл переобучения (update)
+# Полный цикл обучения/дообучения (update)
 python run.py -mode "update"
 
 # Отчёт о состоянии системы (summary)

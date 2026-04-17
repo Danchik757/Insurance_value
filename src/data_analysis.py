@@ -374,7 +374,7 @@ def analyse_data():
 </tr>"""
     
     report_file = reports_dir / f"quality_report_{datetime.now():%Y%m%d_%H%M%S}.html"
-    with open(report_file, "w") as f:
+    with open(report_file, "w", encoding="utf-8") as f:
         f.write(html_content.format(timestamp=datetime.now().isoformat(), rows=rows_html))
     
     logger.info(f"Очет о качестве данных сохранен в {report_file}")

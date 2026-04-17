@@ -50,22 +50,16 @@ class Model:
         self.view.log_path(CONFIG["model_serving"]["predictions_path"])
 
     def update(self):
-        train_models()
-        validate_models()
-
-        self.view.log_boolean(True, "Модель успешно дообучена", "Ошибка при дообучении модели")
-
-    def summary(self):
-        self.view.log_path(get_summary_report())
-
-    def default(self):
         collect_data()
         analyse_data()
         prepare_data()
         train_models()
         validate_models()
 
-        self.view.log_boolean(True, "Модель успешно обучена", "Ошибка при обучении модели")
+        self.view.log_boolean(True, "Модель успешно обучена/дообучена", "Ошибка при обучении/дообучении модели")
+
+    def summary(self):
+        self.view.log_path(get_summary_report())
 
     def dashboard(self):
         d = {}
@@ -96,25 +90,28 @@ class Controller:
 
     def run(self) :
         parser = argparse.ArgumentParser()
-        parser.add_argument("-mode", type=str, default=None, help="Режим работы: \"inference\", \"update\" или \"summary\"")
+        parser.add_argument("-mode", type=str, required=True, help="Режим работы: \"inference\", \"update\", \"summary\" или \"dashboard\"")
         parser.add_argument("-file", type=Path, default=None, help="Путь к файлу для обработки")
 
         args = parser.parse_args()
 
         if args.mode:
             if args.mode == "inference":
-                if not args.file :
+                if not args.file:
                     logger.error("Путь к файлу с данными не указан")
-                else :
+                else:
                     self.model.inference(args.file)
-            elif args.mode == "update":
-                self.model.update()
-            elif args.mode == "summary":
-                self.model.summary()
-            elif args.mode == "dashboard":
-                self.model.dashboard()
-        else:
-            self.model.default()
+            else:
+                if args.file:
+                    logger.warning("Путь к файлу будет проигнорирован")
+                if args.mode == "update":
+                    self.model.update()
+                elif args.mode == "summary":
+                    self.model.summary()
+                elif args.mode == "dashboard":
+                    self.model.dashboard()
+                else:
+                    logger.error("Неправильный режим работы")
                 
 
 if __name__ == "__main__":
