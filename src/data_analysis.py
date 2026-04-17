@@ -352,12 +352,12 @@ def analyse_data():
         
 
     html_content = """<html>
-<head><title>Data Quality Report - Ethiopian Insurance</title></head>
+<head><title>Отчет качества данных</title></head>
 <body>
 <h1>Data Quality Monitoring Report</h1>
-<p>Generated: {timestamp}</p>
+<p>Сгенерированно: {timestamp}</p>
 <table border="1">
-<tr><th>Batch ID</th><th>Quality Score</th><th>Issues Count</th><th>Issues Details</th></tr>
+<tr><th>ID Батча</th><th>Качество</th><th>Число проблем</th><th>Проблемы</th></tr>
 {rows}
 </table>
 </body>

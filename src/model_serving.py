@@ -15,7 +15,7 @@ from src.utils.config import CONFIG
 from src.utils.logger import setup_logger
 
 LOGGER = None
-REPORTS_DIR = "reports"
+REPORTS_DIR = CONFIG["logging"]["reports_dir"]
 
 
 def select_best_model():
