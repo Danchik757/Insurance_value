@@ -382,4 +382,4 @@ def analyse_data():
     logger.info("Data Analysis закончено")
 
 if __name__ == "__main__":
-    main()
+    analyse_data()
