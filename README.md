@@ -30,8 +30,10 @@ Insurance_value/
 
 ## Датасет
 
-Источник: [Vehicle Insurance Data — Kaggle](https://www.kaggle.com/datasets/imtkaggleteam/vehicle-insurance-data)  
-Файл: `motor_data14-2018.csv` (~508 000 строк, 16 признаков)  
+Источник: [Vehicle Insurance Data — Kaggle](https://www.kaggle.com/datasets/imtkaggleteam/vehicle-insurance-data)
+Файлы:
+- `motor_data11-14.csv` (~294 000 строк, 16 признаков)
+- `motor_data14-2018.csv` (~508 000 строк, 16 признаков)
 Целевая переменная: `CLAIM_PAID` — сумма страховой выплаты (0 если выплат не было)
 
 ## Установка
@@ -46,7 +48,14 @@ pip install -r requirements.txt
 
 ```bash
 # Поместить датасеты
+cp /путь/к/motor_data11-14.csv data/raw/
 cp /путь/к/motor_data14-2018.csv data/raw/
+
+# Stage 1 — сбор данных
+python src/data_collection.py
+
+# Stage 2 — анализ данных
+python src/data_analysis.py
 
 # Stage 3 — подготовка данных
 python src/data_preparation.py
@@ -67,6 +76,9 @@ python src/model_serving.py
 ## Запуск через run.py
 
 ```bash
+# Полный цикл обучения
+python run.py
+
 # Предсказание (inference)
 python run.py -mode "inference" -file "./data/raw/motor_data14-2018.csv"
 
@@ -75,6 +87,9 @@ python run.py -mode "update"
 
 # Отчёт о состоянии системы (summary)
 python run.py -mode "summary"
+
+# Отчёт расширенный отчет о состоянии системы (dashboard)
+python run.py -mode "dashboard"
 ```
 
 ## Модели
