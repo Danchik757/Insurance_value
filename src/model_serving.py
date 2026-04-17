@@ -103,7 +103,7 @@ def _preprocess_input(df):
     valid_cols = [c for c in feature_cols if c in df.columns]
     df[valid_cols] = scaler.transform(df[valid_cols])
 
-    return df
+    return df[feature_cols]
 
 
 def predict(input_path):
