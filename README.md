@@ -40,6 +40,19 @@ Insurance_value/
 pip install -r requirements.txt
 ```
 
+## Загрузка датасета
+
+```python
+import kagglehub
+import shutil
+
+path = kagglehub.dataset_download("imtkaggleteam/vehicle-insurance-data")
+print("Датасет скачан в:", path)
+
+# Скопировать файлы в data/raw/
+shutil.copytree(path, "data/raw/", dirs_exist_ok=True)
+```
+
 ## Запуск обучения (вручную, по этапам)
 
 Все команды выполнять из корня репозитория `Insurance_value/`.
