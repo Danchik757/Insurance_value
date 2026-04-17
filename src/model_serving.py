@@ -57,12 +57,9 @@ def _preprocess_input(df):
 
     df = df.copy()
 
-    if target in df.columns:
-        df = df.drop(columns=[target])
-
     if "INSR_BEGIN" in df.columns and "INSR_END" in df.columns:
-        df["INSR_BEGIN"] = pd.to_datetime(df["INSR_BEGIN"], errors="coerce")
-        df["INSR_END"] = pd.to_datetime(df["INSR_END"], errors="coerce")
+        df["INSR_BEGIN"] = pd.to_datetime(df["INSR_BEGIN"], format="mixed", errors="coerce")
+        df["INSR_END"] = pd.to_datetime(df["INSR_END"], format="mixed", errors="coerce")
         df["INSR_YEAR"] = df["INSR_BEGIN"].dt.year
         if "policy_duration_days" not in df.columns:
             df["policy_duration_days"] = (df["INSR_END"] - df["INSR_BEGIN"]).dt.days.fillna(365)
@@ -74,9 +71,19 @@ def _preprocess_input(df):
     if "premium_log" not in df.columns:
         df["premium_log"] = np.log(df["PREMIUM"] + 1e-6)
     if "claim_ratio" not in df.columns:
-        df["claim_ratio"] = 0
+        if target in df.columns:
+            df[target] = df[target].fillna(0)
+            df["claim_ratio"] = (df[target] / (df["PREMIUM"] + 1e-6)).clip(0, 10)
+        else:
+            df["claim_ratio"] = 0
     if "is_claim" not in df.columns:
-        df["is_claim"] = 0
+        if target in df.columns:
+            df["is_claim"] = (df[target] > 0).astype(int)
+        else:
+            df["is_claim"] = 0
+
+    if target in df.columns:
+        df = df.drop(columns=[target])
 
     df = df.drop(columns=drop_cols, errors="ignore")
 
