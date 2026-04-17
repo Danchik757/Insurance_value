@@ -42,15 +42,18 @@ pip install -r requirements.txt
 
 ## Загрузка датасета
 
-```python
-import kagglehub
-import shutil
+1. Скачать токен на [kaggle.com](https://www.kaggle.com) → Settings → API → Create New Token (файл `kaggle.json`)
 
-path = kagglehub.dataset_download("imtkaggleteam/vehicle-insurance-data")
-print("Датасет скачан в:", path)
+2. Установить Kaggle CLI и скачать датасет:
 
-# Скопировать файлы в data/raw/
-shutil.copytree(path, "data/raw/", dirs_exist_ok=True)
+```bash
+pip install kaggle
+
+mkdir -p ~/.kaggle
+cp kaggle.json ~/.kaggle/
+chmod 600 ~/.kaggle/kaggle.json
+
+kaggle datasets download -d imtkaggleteam/vehicle-insurance-data -p data/raw/ --unzip
 ```
 
 ## Запуск обучения (вручную, по этапам)
