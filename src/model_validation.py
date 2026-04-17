@@ -1,30 +1,46 @@
 import glob
 import json
 import os
+import sys
 
 import joblib
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-PROCESSED_A = "data/processed/prepared_A.csv"
-MODELS_DIR = "models/versions"
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../"))
+from src.utils.config import CONFIG
+from src.utils.logger import setup_logger
+
+LOGGER = None
 REPORTS_DIR = "reports"
 
 
 def validate_models():
+    global LOGGER
+    LOGGER = setup_logger(
+        "ModelValidation",
+        log_file=CONFIG["model_validation"]["log_file"],
+        level=CONFIG["logging"]["level"],
+    )
+
     os.makedirs(REPORTS_DIR, exist_ok=True)
 
-    # Загружаем подготовленные данные и воссоздаём тестовую выборку
-    df = pd.read_csv(PROCESSED_A)
-    X = df.drop(columns=["CLAIM_PAID"])
-    y = df["CLAIM_PAID"]
+    models_dir = CONFIG["model_training"]["models_dir"]
+    processed_a = CONFIG["data_preparation"]["processed_a"]
+    target = CONFIG["data_preparation"]["target_column"]
+    train_split = CONFIG["model_training"]["train_split"]
 
-    split_idx = int(len(df) * 0.8)
+    # Загружаем подготовленные данные и воссоздаём тестовую выборку
+    df = pd.read_csv(processed_a)
+    X = df.drop(columns=[target])
+    y = df[target]
+
+    split_idx = int(len(df) * train_split)
     X_test = X.iloc[split_idx:]
     y_test = y.iloc[split_idx:]
 
-    model_files = sorted(glob.glob(os.path.join(MODELS_DIR, "*.pkl")))
+    model_files = sorted(glob.glob(os.path.join(models_dir, "*.pkl")))
 
     results = {}
     best_model_file = None
@@ -40,7 +56,7 @@ def validate_models():
         try:
             y_pred = model.predict(X_test)
         except Exception as e:
-            print(f"Пропускаем {name}: {e}")
+            LOGGER.warning(f"Пропускаем {name}: {e}")
             continue
 
         mae = mean_absolute_error(y_test, y_pred)
@@ -48,7 +64,7 @@ def validate_models():
         r2 = r2_score(y_test, y_pred)
 
         results[name] = {"MAE": round(mae, 4), "RMSE": round(rmse, 4), "R2": round(r2, 4)}
-        print(f"{name}: MAE={mae:.2f}  RMSE={rmse:.2f}  R2={r2:.4f}")
+        LOGGER.info(f"{name}: MAE={mae:.2f}  RMSE={rmse:.2f}  R2={r2:.4f}")
 
         if mae < best_mae:
             best_mae = mae
@@ -63,7 +79,7 @@ def validate_models():
     with open(os.path.join(REPORTS_DIR, "best_model.json"), "w") as f:
         json.dump(best_info, f, indent=2)
 
-    print(f"\nЛучшая модель: {best_model_file} (MAE={best_mae:.2f})")
+    LOGGER.info(f"Лучшая модель: {best_model_file} (MAE={best_mae:.2f})")
 
     # Важность признаков по дереву решений
     dt_files = sorted([p for p in model_files if "decision_tree" in os.path.basename(p)])
@@ -72,9 +88,9 @@ def validate_models():
         if hasattr(dt_model, "feature_importances_"):
             importances = dict(zip(X.columns, dt_model.feature_importances_))
             importances = dict(sorted(importances.items(), key=lambda x: x[1], reverse=True))
-            print("\nВажность признаков (Decision Tree):")
+            LOGGER.info("Важность признаков (Decision Tree):")
             for feat, imp in importances.items():
-                print(f"  {feat}: {imp:.4f}")
+                LOGGER.info(f"  {feat}: {imp:.4f}")
             with open(os.path.join(REPORTS_DIR, "feature_importances.json"), "w") as f:
                 json.dump(importances, f, indent=2)
 
