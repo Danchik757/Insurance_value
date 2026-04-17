@@ -29,7 +29,6 @@ def get_split(df):
 
 
 def apply_inflation_coef(old_df, new_df):
-    # Вычисляем коэффициент инфляции по перекрывающемуся году
     year = CONFIG["model_training"]["inflation_year"]
     old_year = old_df[old_df["INSR_YEAR"] == year]
     new_year = new_df[new_df["INSR_YEAR"] == year]
@@ -49,7 +48,6 @@ def apply_inflation_coef(old_df, new_df):
 
 
 def preprocess_retrain_data(old_path, new_df_raw):
-    # Загружаем старый датасет и применяем те же преобразования что и в data_preparation.py
     date_fmt = CONFIG["data_preparation"]["date_format"]
     drop_cols = CONFIG["data_preparation"]["drop_columns"]
     target = CONFIG["data_preparation"]["target_column"]
@@ -58,16 +56,26 @@ def preprocess_retrain_data(old_path, new_df_raw):
     old_df[target] = old_df[target].fillna(0)
     old_df["INSR_BEGIN"] = pd.to_datetime(old_df["INSR_BEGIN"], format=date_fmt, errors="coerce")
     old_df["INSR_END"] = pd.to_datetime(old_df["INSR_END"], format=date_fmt, errors="coerce")
-    old_df["INSR_DURATION"] = (old_df["INSR_END"] - old_df["INSR_BEGIN"]).dt.days
     old_df["INSR_YEAR"] = old_df["INSR_BEGIN"].dt.year
+    old_df["policy_duration_days"] = (old_df["INSR_END"] - old_df["INSR_BEGIN"]).dt.days.fillna(365)
+    old_df["premium_per_seat"] = old_df["PREMIUM"] / (old_df["SEATS_NUM"] + 1e-6)
+    old_df["insured_value_per_ton"] = old_df["INSURED_VALUE"] / (old_df["CCM_TON"] + 1e-6)
+    old_df["claim_ratio"] = (old_df[target] / (old_df["PREMIUM"] + 1e-6)).clip(0, 10)
+    old_df["is_claim"] = (old_df[target] > 0).astype(int)
+    old_df["premium_log"] = np.log(old_df["PREMIUM"] + 1e-6)
     old_df = old_df.drop(columns=drop_cols, errors="ignore")
 
     new_raw = new_df_raw.copy()
     new_raw[target] = new_raw[target].fillna(0)
     new_raw["INSR_BEGIN"] = pd.to_datetime(new_raw["INSR_BEGIN"], format=date_fmt, errors="coerce")
     new_raw["INSR_END"] = pd.to_datetime(new_raw["INSR_END"], format=date_fmt, errors="coerce")
-    new_raw["INSR_DURATION"] = (new_raw["INSR_END"] - new_raw["INSR_BEGIN"]).dt.days
     new_raw["INSR_YEAR"] = new_raw["INSR_BEGIN"].dt.year
+    new_raw["policy_duration_days"] = (new_raw["INSR_END"] - new_raw["INSR_BEGIN"]).dt.days.fillna(365)
+    new_raw["premium_per_seat"] = new_raw["PREMIUM"] / (new_raw["SEATS_NUM"] + 1e-6)
+    new_raw["insured_value_per_ton"] = new_raw["INSURED_VALUE"] / (new_raw["CCM_TON"] + 1e-6)
+    new_raw["claim_ratio"] = (new_raw[target] / (new_raw["PREMIUM"] + 1e-6)).clip(0, 10)
+    new_raw["is_claim"] = (new_raw[target] > 0).astype(int)
+    new_raw["premium_log"] = np.log(new_raw["PREMIUM"] + 1e-6)
     new_raw = new_raw.drop(columns=drop_cols, errors="ignore")
 
     old_df = apply_inflation_coef(old_df, new_raw)
@@ -114,7 +122,6 @@ def train_models(retrain_path=None):
                         lambda x: le.transform([x])[0] if x in le.classes_ else -1
                     )
 
-            # Приводим колонки к тому же набору что и основной датасет
             old_extra = old_extra.reindex(columns=df.columns, fill_value=0)
 
             target = CONFIG["data_preparation"]["target_column"]
@@ -152,7 +159,6 @@ def train_models(retrain_path=None):
                 models["sgd"] = sgd_model
 
         for name, model in models.items():
-            # SGD после partial_fit уже обучена, остальные обучаем с нуля
             if not (name == "sgd" and hasattr(model, "coef_")):
                 model.fit(X_train, y_train)
 

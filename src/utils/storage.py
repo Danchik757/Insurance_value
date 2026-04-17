@@ -27,8 +27,10 @@ class DatabaseStorage:
         cur.execute(f"INSERT OR REPLACE INTO {self._table_name} (id, data_json) VALUES (?, ?);", (index, data.to_json()))
 
         if meta :
-            cur.execute(f"INSERT INTO {CONFIG["storage"]["metadata_table"]} (id, {", ".join(meta)}) VALUES (?{", ?" * len(meta)}) ON CONFLICT (id) DO UPDATE SET {", ".join(map(lambda x : f"{x} = EXCLUDED.{x}", meta))};", (index, *meta.values()))
-    
+            cur.execute(f"UPDATE {CONFIG["storage"]["metadata_table"]} SET {", ".join(map(lambda x : f"{x} = ?", meta))} WHERE id = ?;", (*meta.values(), index))
+            if cur.rowcount == 0:
+                cur.execute(f"INSERT INTO {CONFIG["storage"]["metadata_table"]} (id, {", ".join(meta)}) VALUES (?{", ?" * len(meta)});", (index, *meta.values()))
+
         _CONNECTION.commit()
 
     def read_batch(self, index):
@@ -40,7 +42,7 @@ class DatabaseStorage:
             return pd.DataFrame(data)
         else :
             return None
-        
+
     def read(self) :
         i = 0
         while True :
@@ -50,13 +52,16 @@ class DatabaseStorage:
             yield res
             i += 1
 
-    def fetch_next_index_to_add(self) :
+    def fetch_next_index_to_add(self, meta={}) :
         cur = _CONNECTION.cursor()
-        cur.execute(f"SELECT MAX(id) FROM {self._table_name}")
+        if meta :
+            ...
+        else :
+            cur.execute(f"SELECT MAX(id) FROM {self._table_name}")
         data = cur.fetchone()
         if data and data[0] :
             return data[0] + 1
-        
+
         return 0
 
     def fetch_next_index_in_source_to_add(self, sources) :
@@ -65,5 +70,5 @@ class DatabaseStorage:
         data = cur.fetchone()
         if data and data[0] and data[1] :
             return data[0] + data[1]
-        
+
         return 0

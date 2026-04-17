@@ -41,7 +41,6 @@ def select_best_model():
 
 
 def _preprocess_input(df):
-    # Применяем те же преобразования что и при обучении
     encoders_path = CONFIG["model_training"]["encoders_path"]
     if not os.path.exists(encoders_path) or not os.path.exists("models/scaler_A.pkl"):
         LOGGER.error("Не найдены encoders.pkl или scaler_A.pkl")
@@ -62,10 +61,22 @@ def _preprocess_input(df):
         df = df.drop(columns=[target])
 
     if "INSR_BEGIN" in df.columns and "INSR_END" in df.columns:
-        df["INSR_BEGIN"] = pd.to_datetime(df["INSR_BEGIN"], format=date_fmt, errors="coerce")
-        df["INSR_END"] = pd.to_datetime(df["INSR_END"], format=date_fmt, errors="coerce")
-        df["INSR_DURATION"] = (df["INSR_END"] - df["INSR_BEGIN"]).dt.days
+        df["INSR_BEGIN"] = pd.to_datetime(df["INSR_BEGIN"], errors="coerce")
+        df["INSR_END"] = pd.to_datetime(df["INSR_END"], errors="coerce")
         df["INSR_YEAR"] = df["INSR_BEGIN"].dt.year
+        if "policy_duration_days" not in df.columns:
+            df["policy_duration_days"] = (df["INSR_END"] - df["INSR_BEGIN"]).dt.days.fillna(365)
+
+    if "premium_per_seat" not in df.columns:
+        df["premium_per_seat"] = df["PREMIUM"] / (df["SEATS_NUM"] + 1e-6)
+    if "insured_value_per_ton" not in df.columns:
+        df["insured_value_per_ton"] = df["INSURED_VALUE"] / (df["CCM_TON"] + 1e-6)
+    if "premium_log" not in df.columns:
+        df["premium_log"] = np.log(df["PREMIUM"] + 1e-6)
+    if "claim_ratio" not in df.columns:
+        df["claim_ratio"] = 0
+    if "is_claim" not in df.columns:
+        df["is_claim"] = 0
 
     df = df.drop(columns=drop_cols, errors="ignore")
 
