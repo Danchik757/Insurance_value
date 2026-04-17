@@ -95,21 +95,23 @@ class CompositeSource(DataSource):
         return compound
 
 class StreamEmulator:
-    def __init__(self, data_source, batch_size, delay=0.1):
+    def __init__(self, data_source, batch_size, delay=0.1, offset=0):
         self.data_source = data_source
         self.batch_size = batch_size
         self.delay = delay
+        self.offset = offset
 
     def stream(self):
-        for i in range(0, self.data_source.get_size(), self.batch_size):
+        for i in range(self.offset, self.data_source.get_size(), self.batch_size):
             batch_data = self.data_source.get_data(i, min(self.batch_size, self.data_source.get_size() - i))
 
             if batch_data is None :
                 break
 
             yield {
-                "id": i // self.batch_size,
-                "data": batch_data
+                "data": batch_data,
+                "index_in_source": i,
+                "size": len(batch_data)
             }
 
             time.sleep(self.delay)
@@ -120,43 +122,36 @@ def collect_data():
     LOGGER = setup_logger("DataCollection", log_file=CONFIG["logging"]["path"], level=CONFIG["logging"]["level"])
 
     sources = CompositeSource([CSVDataSource(i) for i in CONFIG["dataset"]["paths"]])
-
-    streamer = StreamEmulator(data_source=sources, batch_size=CONFIG["stream"]["batch_size"], delay=CONFIG["stream"]["delay_seconds"])
+    sources_name = ";".join(CONFIG["dataset"]["paths"])
 
     storage = DatabaseStorage(CONFIG["storage"]["raw_table"])
 
-    metas = []
+    index = storage.fetch_next_index_to_add()
+    streamer = StreamEmulator(data_source=sources, batch_size=CONFIG["stream"]["batch_size"], delay=CONFIG["stream"]["delay_seconds"], offset=storage.fetch_next_index_in_source_to_add(sources_name))
 
     LOGGER.info("Data Collection начато")
-    for batch in streamer.stream():
-        try:
-            storage.save_batch(batch)
-            LOGGER.info(f"Сохранение батча {batch["id"]} резмера {len(batch["data"])}")
-
-            if CONFIG["meta"]["compute_per_batch"]:
+    try :
+        for batch in streamer.stream():
+            try:
                 meta = {
                     "timestamp": time.time(),
-                    "sources": CONFIG["dataset"]["paths"],
-                    "version": VERSION
+                    "sources": sources_name,
+                    "index_in_source": batch["index_in_source"],
+                    "size": batch["size"],
+                    "data_collection_version": VERSION
                 }
-                metas.append(meta)
-                LOGGER.info(f"Метапараметры для батча {batch["id"]}: timestamp={meta["timestamp"]}; sources={meta["sources"]}; version={meta["version"]}")
+                storage.save_batch(index, batch["data"], meta)
+                LOGGER.info(f"Сохранение батча {index} резмера {batch["size"]}")
+                LOGGER.info(f"Метапараметры для батча {index}: timestamp={meta["timestamp"]}; sources={meta["sources"]}; data_collection_version={meta["data_collection_version"]}")
+                index += 1
 
-        except Exception as e:
-            LOGGER.error(f"Ошибка при обработки батча {batch["id"]}: {e}", exc_info=True)
-            break
-
-    if not CONFIG["meta"]["compute_per_batch"] :
-        meta = {
-            "timestamp": time.time(),
-            "sources": CONFIG["dataset"]["paths"],
-            "version": VERSION
-        }
-        metas.append(meta)
-        LOGGER.info(f"Метапараметры для всех батчей: timestamp={meta["timestamp"]}; sources={meta["sources"]}; version={meta["version"]}")
+            except Exception as e:
+                LOGGER.error(f"Ошибка при обработки батча {index}: {e}", exc_info=True)
+                break
+    except KeyboardInterrupt :
+        LOGGER.warning(f"Обработка потока была прервана")
 
     LOGGER.info("Data Collection закончено")
-    return CONFIG["storage"]["path"], metas
 
 if __name__ == "__main__":
     collect_data()

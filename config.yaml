@@ -11,9 +11,7 @@ storage:
   path: "database.db"
   raw_table: "raw_batches"
   cleaned_table: "cleaned_batches"
-
-meta:
-  compute_per_batch: true
+  metadata_table: "metadata"
 
 logging:
   level: "INFO"

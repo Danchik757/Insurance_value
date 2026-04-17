@@ -7,24 +7,32 @@ import os
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../"))
 from src.utils.config import CONFIG
 
+_CONNECTION = sqlite3.connect(CONFIG["storage"]["path"])
+cur = _CONNECTION.cursor()
+cur.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG["storage"]["metadata_table"]} (id INT PRIMARY KEY, timestamp REAL NOT NULL, sources TEXT NOT NULL, index_in_source INT NOT NULL, size INT NOT NULL, data_collection_version TEXT NOT NULL, data_analysis_version TEXT DEFAULT '');")
+_CONNECTION.commit()
+
 class DatabaseStorage:
     def __init__(self, table_name):
-        self.conn = sqlite3.connect(CONFIG["storage"]["path"])
         self._table_name = table_name
         self._init_db()
 
     def _init_db(self):
-        cur = self.conn.cursor()
-        cur.execute(f"CREATE TABLE IF NOT EXISTS {self._table_name} (id INT PRIMARY KEY, data_json TEXT)")
-        self.conn.commit()
+        cur = _CONNECTION.cursor()
+        cur.execute(f"CREATE TABLE IF NOT EXISTS {self._table_name} (id INT PRIMARY KEY, data_json TEXT NOT NULL);")
+        _CONNECTION.commit()
 
-    def save_batch(self, batch_data):
-        cur = self.conn.cursor()
-        cur.execute(f"INSERT OR REPLACE INTO {self._table_name} (id, data_json) VALUES (?, ?)", (batch_data["id"], batch_data["data"].to_json()))
-        self.conn.commit()
+    def save_batch(self, index, data, meta={}):
+        cur = _CONNECTION.cursor()
+        cur.execute(f"INSERT OR REPLACE INTO {self._table_name} (id, data_json) VALUES (?, ?);", (index, data.to_json()))
+
+        if meta :
+            cur.execute(f"INSERT INTO {CONFIG["storage"]["metadata_table"]} (id, {", ".join(meta)}) VALUES (?{", ?" * len(meta)}) ON CONFLICT (id) DO UPDATE SET {", ".join(map(lambda x : f"{x} = EXCLUDED.{x}", meta))};", (index, *meta.values()))
+    
+        _CONNECTION.commit()
 
     def read_batch(self, index):
-        cur = self.conn.cursor()
+        cur = _CONNECTION.cursor()
         cur.execute(f"SELECT data_json FROM {self._table_name} WHERE id = {index}")
         data_json = cur.fetchone()
         if data_json :
@@ -41,3 +49,21 @@ class DatabaseStorage:
                 break
             yield res
             i += 1
+
+    def fetch_next_index_to_add(self) :
+        cur = _CONNECTION.cursor()
+        cur.execute(f"SELECT MAX(id) FROM {self._table_name}")
+        data = cur.fetchone()
+        if data and data[0] :
+            return data[0] + 1
+        
+        return 0
+
+    def fetch_next_index_in_source_to_add(self, sources) :
+        cur = _CONNECTION.cursor()
+        cur.execute(f"SELECT MAX(index_in_source), size FROM {CONFIG["storage"]["metadata_table"]} WHERE sources = '{sources}';")
+        data = cur.fetchone()
+        if data and data[0] and data[1] :
+            return data[0] + data[1]
+        
+        return 0
