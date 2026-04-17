@@ -303,7 +303,7 @@ class DataDriftDetector:
             return psi
         
 def analyse_data():
-    logger.info("Data Analysis начато")
+    logger.info("Data Analysis начат")
 
     reports_dir = Path(CONFIG["logging"]["reports_dir"])
     reports_dir.mkdir(parents=True, exist_ok=True)
@@ -379,7 +379,7 @@ def analyse_data():
     
     logger.info(f"Очет о качестве данных сохранен в {report_file}")
 
-    logger.info("Data Analysis закончено")
+    logger.info("Data Analysis закончен")
 
 if __name__ == "__main__":
     analyse_data()

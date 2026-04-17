@@ -129,7 +129,7 @@ def collect_data():
     index = storage.fetch_next_index_to_add()
     streamer = StreamEmulator(data_source=sources, batch_size=CONFIG["stream"]["batch_size"], delay=CONFIG["stream"]["delay_seconds"], offset=storage.fetch_next_index_in_source_to_add(sources_name))
 
-    LOGGER.info("Data Collection начато")
+    LOGGER.info("Data Collection начат")
     try :
         for batch in streamer.stream():
             try:
@@ -151,7 +151,7 @@ def collect_data():
     except KeyboardInterrupt :
         LOGGER.warning(f"Обработка потока была прервана")
 
-    LOGGER.info("Data Collection закончено")
+    LOGGER.info("Data Collection закончен")
 
 if __name__ == "__main__":
     collect_data()
