@@ -19,6 +19,8 @@ REPORTS_DIR = "reports"
 
 
 def select_best_model():
+    if LOGGER is None:
+        setup()
     # Читаем имя лучшей модели из результатов валидации
     best_info_path = os.path.join(REPORTS_DIR, "best_model.json")
     if not os.path.exists(best_info_path):
@@ -87,6 +89,8 @@ def _preprocess_input(df):
 
 
 def predict(input_path):
+    if LOGGER is None:
+        setup()
     best_model_path = CONFIG["model_serving"]["best_model_path"]
     predictions_path = CONFIG["model_serving"]["predictions_path"]
     performance_log = CONFIG["model_serving"]["performance_log"]
@@ -134,6 +138,8 @@ def predict(input_path):
 
 
 def get_summary_report():
+    if LOGGER is None:
+        setup()
     os.makedirs(REPORTS_DIR, exist_ok=True)
     report = {}
 
