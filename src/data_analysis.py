@@ -302,7 +302,7 @@ class DataDriftDetector:
                 psi += (curr_p - ref_p) * np.log(curr_p / ref_p)
             return psi
         
-def main():
+def analyse_data():
     logger.info("Data Analysis начато")
 
     reports_dir = Path(CONFIG["logging"]["reports_dir"])
