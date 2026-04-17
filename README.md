@@ -11,6 +11,7 @@ Insurance_value/
 ├── run.py              # точка входа (inference / update / summary)
 ├── src/
 │   ├── data_collection.py    # Stage 1 — сбор данных
+│   ├── data_analysis.py      # Stage 2 — анализ данных
 │   ├── data_preparation.py   # Stage 3 — подготовка данных
 │   ├── model_training.py     # Stage 4 — обучение моделей
 │   ├── model_validation.py   # Stage 5 — валидация моделей
