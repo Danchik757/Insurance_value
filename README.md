@@ -6,25 +6,31 @@
 
 ```
 Insurance_value/
-├── data/
-│   ├── raw/            # Исходные данные (батчи от Stage 1)
-│   ├── cleaned/        # Очищенные данные (от Stage 2)
-│   └── processed/      # Подготовленные данные (Stage 3)
-├── models/
-│   └── versions/       # Версии обученных моделей
-├── reports/            # Метрики качества и отчёты
-├── data_collection/    # Stage 1 — сбор данных
-├── data_analysis/      # Stage 2 — анализ данных
-├── data_preparation/   # Stage 3 — подготовка данных
-├── model_training/     # Stage 4 — обучение моделей
-├── model_validation/   # Stage 5 — валидация моделей
-├── model_serving/      # Stage 6 — сервинг модели
+├── config.yaml         # настройки пайплайна (пути, параметры моделей)
 ├── requirements.txt
-└── run.py
+├── run.py              # точка входа (inference / update / summary)
+├── src/
+│   ├── data_collection.py    # Stage 1 — сбор данных
+│   ├── data_preparation.py   # Stage 3 — подготовка данных
+│   ├── model_training.py     # Stage 4 — обучение моделей
+│   ├── model_validation.py   # Stage 5 — валидация моделей
+│   ├── model_serving.py      # Stage 6 — сервинг модели
+│   └── utils/
+│       ├── config.py         # загрузка config.yaml
+│       ├── logger.py         # настройка логгера
+│       └── storage.py        # работа с SQLite БД
+├── data/
+│   ├── raw/            # исходные CSV файлы
+│   ├── cleaned/        # очищенные данные (fallback от Stage 2)
+│   └── processed/      # подготовленные данные для обучения
+├── models/
+│   └── versions/       # версии обученных моделей
+└── reports/            # метрики, отчёты, логи производительности
 ```
 
 ## Датасет
 
+Источник: [Vehicle Insurance Data — Kaggle](https://www.kaggle.com/datasets/imtkaggleteam/vehicle-insurance-data)  
 Файл: `motor_data14-2018.csv` (~508 000 строк, 16 признаков)  
 Целевая переменная: `CLAIM_PAID` — сумма страховой выплаты (0 если выплат не было)
 
@@ -36,24 +42,26 @@ pip install -r requirements.txt
 
 ## Запуск обучения (вручную, по этапам)
 
+Все команды выполнять из корня репозитория `Insurance_value/`.
+
 ```bash
-# Поместить датасет
+# Поместить датасеты
 cp /путь/к/motor_data14-2018.csv data/raw/
 
 # Stage 3 — подготовка данных
-python data_preparation/preparator.py
+python src/data_preparation.py
 
 # Stage 4 — обучение моделей
-python model_training/trainer.py
+python src/model_training.py
 
 # Stage 4 — дообучение на втором датасете (когда нужно)
-python model_training/trainer.py --retrain /путь/к/motor_data11-14lats.csv
+python src/model_training.py --retrain data/raw/motor_data11-14lats.csv
 
 # Stage 5 — валидация
-python model_validation/validator.py
+python src/model_validation.py
 
 # Stage 6 — выбор лучшей модели
-python model_serving/server.py
+python src/model_serving.py
 ```
 
 ## Запуск через run.py

@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import pickle
+import sys
 import time
 import tracemalloc
 
@@ -9,51 +10,64 @@ import joblib
 import numpy as np
 import pandas as pd
 
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../"))
+from src.utils.config import CONFIG
+from src.utils.logger import setup_logger
+
+LOGGER = None
 REPORTS_DIR = "reports"
-MODELS_DIR = "models/versions"
-BEST_MODEL_PATH = "models/best_model.pkl"
-PERFORMANCE_LOG = "reports/performance_log.json"
 
 
 def select_best_model():
+    if LOGGER is None:
+        setup()
     # Читаем имя лучшей модели из результатов валидации
     best_info_path = os.path.join(REPORTS_DIR, "best_model.json")
     if not os.path.exists(best_info_path):
-        raise FileNotFoundError("Сначала запустите model_validation/validator.py")
+        LOGGER.error("Файл best_model.json не найден, сначала запустите model_validation.py")
+        raise FileNotFoundError("Сначала запустите src/model_validation.py")
 
     with open(best_info_path) as f:
         best_info = json.load(f)
 
-    best_path = os.path.join(MODELS_DIR, best_info["best_model"])
+    models_dir = CONFIG["model_training"]["models_dir"]
+    best_model_path = CONFIG["model_serving"]["best_model_path"]
+
+    best_path = os.path.join(models_dir, best_info["best_model"])
     model = joblib.load(best_path)
-    joblib.dump(model, BEST_MODEL_PATH)
-    print(f"Лучшая модель сохранена: {BEST_MODEL_PATH}")
+    joblib.dump(model, best_model_path)
+    LOGGER.info(f"Лучшая модель сохранена: {best_model_path}")
     return model
 
 
 def _preprocess_input(df):
     # Применяем те же преобразования что и при обучении
-    if not os.path.exists("models/encoders.pkl") or not os.path.exists("models/scaler_A.pkl"):
-        raise FileNotFoundError("Сначала запустите data_preparation/preparator.py")
+    encoders_path = CONFIG["model_training"]["encoders_path"]
+    if not os.path.exists(encoders_path) or not os.path.exists("models/scaler_A.pkl"):
+        LOGGER.error("Не найдены encoders.pkl или scaler_A.pkl")
+        raise FileNotFoundError("Сначала запустите src/data_preparation.py")
 
-    with open("models/encoders.pkl", "rb") as f:
+    with open(encoders_path, "rb") as f:
         encoders = pickle.load(f)
     with open("models/scaler_A.pkl", "rb") as f:
         scaler = pickle.load(f)
 
+    date_fmt = CONFIG["data_preparation"]["date_format"]
+    drop_cols = CONFIG["data_preparation"]["drop_columns"]
+    target = CONFIG["data_preparation"]["target_column"]
+
     df = df.copy()
 
-    if "CLAIM_PAID" in df.columns:
-        df = df.drop(columns=["CLAIM_PAID"])
+    if target in df.columns:
+        df = df.drop(columns=[target])
 
     if "INSR_BEGIN" in df.columns and "INSR_END" in df.columns:
-        df["INSR_BEGIN"] = pd.to_datetime(df["INSR_BEGIN"], format="%d-%b-%y", errors="coerce")
-        df["INSR_END"] = pd.to_datetime(df["INSR_END"], format="%d-%b-%y", errors="coerce")
+        df["INSR_BEGIN"] = pd.to_datetime(df["INSR_BEGIN"], format=date_fmt, errors="coerce")
+        df["INSR_END"] = pd.to_datetime(df["INSR_END"], format=date_fmt, errors="coerce")
         df["INSR_DURATION"] = (df["INSR_END"] - df["INSR_BEGIN"]).dt.days
         df["INSR_YEAR"] = df["INSR_BEGIN"].dt.year
-        df = df.drop(columns=["INSR_BEGIN", "INSR_END"], errors="ignore")
 
-    df = df.drop(columns=["OBJECT_ID"], errors="ignore")
+    df = df.drop(columns=drop_cols, errors="ignore")
 
     num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     for col in num_cols:
@@ -75,10 +89,16 @@ def _preprocess_input(df):
 
 
 def predict(input_path):
-    if not os.path.exists(BEST_MODEL_PATH):
+    if LOGGER is None:
+        setup()
+    best_model_path = CONFIG["model_serving"]["best_model_path"]
+    predictions_path = CONFIG["model_serving"]["predictions_path"]
+    performance_log = CONFIG["model_serving"]["performance_log"]
+
+    if not os.path.exists(best_model_path):
         select_best_model()
 
-    model = joblib.load(BEST_MODEL_PATH)
+    model = joblib.load(best_model_path)
     df_raw = pd.read_csv(input_path)
     df_processed = _preprocess_input(df_raw)
 
@@ -93,9 +113,7 @@ def predict(input_path):
     tracemalloc.stop()
 
     df_raw["predict"] = predictions
-
-    output_path = "data/predictions.csv"
-    df_raw.to_csv(output_path, index=False)
+    df_raw.to_csv(predictions_path, index=False)
 
     # Логируем производительность
     log_entry = {
@@ -108,18 +126,20 @@ def predict(input_path):
 
     os.makedirs(REPORTS_DIR, exist_ok=True)
     logs = []
-    if os.path.exists(PERFORMANCE_LOG):
-        with open(PERFORMANCE_LOG) as f:
+    if os.path.exists(performance_log):
+        with open(performance_log) as f:
             logs = json.load(f)
     logs.append(log_entry)
-    with open(PERFORMANCE_LOG, "w") as f:
+    with open(performance_log, "w") as f:
         json.dump(logs, f, indent=2)
 
-    print(f"Предсказания сохранены: {output_path} ({elapsed:.3f}с, пик памяти {peak/1024/1024:.2f} МБ)")
-    return output_path
+    LOGGER.info(f"Предсказания сохранены: {predictions_path} ({elapsed:.3f}с, пик {peak/1024/1024:.2f} МБ)")
+    return predictions_path
 
 
 def get_summary_report():
+    if LOGGER is None:
+        setup()
     os.makedirs(REPORTS_DIR, exist_ok=True)
     report = {}
 
@@ -134,17 +154,28 @@ def get_summary_report():
             with open(fpath) as f:
                 report[key] = json.load(f)
 
-    if os.path.exists(PERFORMANCE_LOG):
-        with open(PERFORMANCE_LOG) as f:
+    performance_log = CONFIG["model_serving"]["performance_log"]
+    if os.path.exists(performance_log):
+        with open(performance_log) as f:
             report["performance_log"] = json.load(f)
 
     summary_path = os.path.join(REPORTS_DIR, "summary_report.json")
     with open(summary_path, "w") as f:
         json.dump(report, f, indent=2)
 
-    print(f"Итоговый отчёт сохранён: {summary_path}")
+    LOGGER.info(f"Итоговый отчёт сохранён: {summary_path}")
     return summary_path
 
 
+def setup():
+    global LOGGER
+    LOGGER = setup_logger(
+        "ModelServing",
+        log_file=CONFIG["model_serving"]["log_file"],
+        level=CONFIG["logging"]["level"],
+    )
+
+
 if __name__ == "__main__":
+    setup()
     select_best_model()

@@ -12,6 +12,7 @@ storage:
   raw_table: "raw_batches"
   cleaned_table: "cleaned_batches"
   metadata_table: "metadata"
+  cleaned_csv: "data/cleaned/cleaned_data.csv"
 
 logging:
   level: "INFO"
@@ -53,3 +54,42 @@ data_analysis:
     method: "psi"
     psi_threshold: 0.2
     monitor_columns: ["INSURED_VALUE", "PREMIUM", "CLAIM_PAID", "SEATS_NUM", "TYPE_VEHICLE", "USAGE"]
+
+data_preparation:
+  processed_a: "data/processed/prepared_A.csv"
+  processed_b: "data/processed/prepared_B.csv"
+  target_column: "CLAIM_PAID"
+  date_format: "%d-%b-%y"
+  drop_columns:
+    - "INSR_BEGIN"
+    - "INSR_END"
+    - "OBJECT_ID"
+  log_file: "preparation.log"
+
+model_training:
+  models_dir: "models/versions"
+  encoders_path: "models/encoders.pkl"
+  train_split: 0.8
+  inflation_year: 2014
+  inflation_columns:
+    - "CLAIM_PAID"
+    - "INSURED_VALUE"
+    - "PREMIUM"
+  log_file: "training.log"
+  decision_tree:
+    max_depth: 10
+    random_state: 42
+  knn:
+    n_neighbors: 5
+  sgd:
+    max_iter: 1000
+    random_state: 42
+
+model_validation:
+  log_file: "validation.log"
+
+model_serving:
+  best_model_path: "models/best_model.pkl"
+  predictions_path: "data/predictions.csv"
+  performance_log: "reports/performance_log.json"
+  log_file: "serving.log"
