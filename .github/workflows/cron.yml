@@ -1,6 +1,6 @@
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '0 3 * * *'
 
 jobs:
   incremental-train:
@@ -14,10 +14,16 @@ jobs:
           name: trained-model
           if_no_artifact_found: ignore
 
+      - name: Устанавливаем базу данных
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          name: collector-database
+          if_no_artifact_found: ignore
+
       - name: Incremental training
         run: python run.py -mode "update"
 
-      - name: Upload model artifact
+      - name: Модель
         uses: actions/upload-artifact@v4
         with:
           name: trained-model
@@ -26,4 +32,14 @@ jobs:
             models/encoders.pkl
             models/scaler_A.pkl
             models/versions/*.pkl
+          retention-days: 90
+
+      - name: База данных
+        uses: actions/upload-artifact@v4
+        with:
+          name: collector-database
+          path: |
+            database.db
+            db.meta
+          if-no-files-found: error
           retention-days: 90

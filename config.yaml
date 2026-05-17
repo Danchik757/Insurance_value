@@ -1,7 +1,7 @@
 dataset:
   paths:
     - "data/raw/motor_data11-14lats.csv"
-#    - "data/raw/motor_data14-2018.csv"
+    - "data/raw/motor_data14-2018.csv"
 
 stream:
   batch_size: 50000
