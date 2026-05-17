@@ -102,6 +102,18 @@ python run.py -mode "summary"
 python run.py -mode "dashboard"
 ```
 
+## CI/CD
+
+При каждом push запускается `.github/workflows/cicd.yml` — полный цикл обучения.
+
+Артефакты доступны в **Actions → нужный запуск → Artifacts**: логи, обученная модель, база данных, dashboard с историей запусков. Сводка метрик также отображается на вкладке **Summary**.
+
+Чтобы запустить inference с моделью из артефакта:
+```bash
+unzip trained-model.zip -d .
+python run.py -mode inference -file ./data/raw/motor_data14-2018.csv
+```
+
 ## Модели
 
 Обучаются три модели в двух вариантах препроцессинга (StandardScaler / MinMaxScaler):

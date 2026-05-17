@@ -8,6 +8,7 @@ models/versions/*
 !models/versions/.gitkeep
 models/*.pkl
 reports/
+!reports/training_history.json
 __pycache__/
 *.pyc
 .DS_Store

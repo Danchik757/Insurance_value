@@ -16,3 +16,49 @@ jobs:
           pip install -r requirements.txt
       - name: Запуск полного цикла обучения
         run: python run.py
+
+      - name: Dashboard
+        run: python src/generate_dashboard.py
+
+      - name: Логи
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-logs
+          path: |
+            collection.log
+            training.log
+            validation.log
+            serving.log
+            all.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Модель
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-model
+          path: |
+            models/best_model.pkl
+            models/encoders.pkl
+            models/scaler_A.pkl
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: База данных
+        uses: actions/upload-artifact@v4
+        with:
+          name: collector-database
+          path: |
+            database.db
+            db.meta
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Отчёты
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-and-dashboard
+          path: reports/
+          if-no-files-found: error
+          retention-days: 90
