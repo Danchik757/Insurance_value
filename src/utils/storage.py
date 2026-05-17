@@ -30,12 +30,20 @@ _CONNECTION = sqlite3.connect(CONFIG["storage"]["path"])
 
 if determined_version == "" :
     cur = _CONNECTION.cursor()
-    cur.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG["storage"]["metadata_table"]} (id INT PRIMARY KEY, timestamp REAL NOT NULL, sources TEXT NOT NULL, index_in_source INT NOT NULL, size INT NOT NULL, data_collection_version TEXT NOT NULL, data_analysis_version TEXT DEFAULT '', used_for_learning INTEGER CHECK (used_for_learning IN (0, 1)) DEFAULT 0);")
+    cur.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG['storage']['metadata_table']} (id INT PRIMARY KEY, timestamp REAL NOT NULL, sources TEXT NOT NULL, index_in_source INT NOT NULL, size INT NOT NULL, data_collection_version TEXT NOT NULL, data_analysis_version TEXT DEFAULT '', used_for_learning INTEGER CHECK (used_for_learning IN (0, 1)) DEFAULT 0);")
     _CONNECTION.commit()
 elif determined_version == "1.0.0" :
-    cur = _CONNECTION.cursor()
-    cur.execute(f"ALTER TABLE {CONFIG["storage"]["metadata_table"]} ADD COLUMN used_for_learning INTEGER CHECK (used_for_learning IN (0, 1)) DEFAULT 0;")
-    _CONNECTION.commit()
+    try :
+        cur = _CONNECTION.cursor()
+        cur.execute(f"ALTER TABLE {CONFIG['storage']['metadata_table']} ADD COLUMN used_for_learning INTEGER CHECK (used_for_learning IN (0, 1)) DEFAULT 0;")
+        _CONNECTION.commit()
+    except sqlite3.OperationalError as e:
+        LOGGER.error(f"Ошибка при обновлении базы данных: {e}")
+        
+        cur = _CONNECTION.cursor()
+        cur.execute(f"DROP TABLE IF EXISTS {CONFIG['storage']['metadata_table']};")
+        cur.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG['storage']['metadata_table']} (id INT PRIMARY KEY, timestamp REAL NOT NULL, sources TEXT NOT NULL, index_in_source INT NOT NULL, size INT NOT NULL, data_collection_version TEXT NOT NULL, data_analysis_version TEXT DEFAULT '', used_for_learning INTEGER CHECK (used_for_learning IN (0, 1)) DEFAULT 0);")
+        _CONNECTION.commit()
 
 if _flag :
     with open(CONFIG["storage"]["db_metadata"], "w") as f :
@@ -56,18 +64,18 @@ class DatabaseStorage:
         cur.execute(f"INSERT OR REPLACE INTO {self._table_name} (id, data_json) VALUES (?, ?);", (index, data.to_json()))
 
         if meta :
-            cur.execute(f"UPDATE {CONFIG["storage"]["metadata_table"]} SET {", ".join(map(lambda x : f"{x} = ?", meta))} WHERE id = ?;", (*meta.values(), index))
+            cur.execute(f"UPDATE {CONFIG['storage']['metadata_table']} SET {', '.join(map(lambda x : f'{x} = ?', meta))} WHERE id = ?;", (*meta.values(), index))
             if cur.rowcount == 0:
-                cur.execute(f"INSERT INTO {CONFIG["storage"]["metadata_table"]} (id, {", ".join(meta)}) VALUES (?{", ?" * len(meta)});", (index, *meta.values()))
+                cur.execute(f"INSERT INTO {CONFIG['storage']['metadata_table']} (id, {', '.join(meta)}) VALUES (?{', ?' * len(meta)});", (index, *meta.values()))
 
         _CONNECTION.commit()
 
     def update_meta(self, index, meta):
         cur = _CONNECTION.cursor()
 
-        cur.execute(f"UPDATE {CONFIG["storage"]["metadata_table"]} SET {", ".join(map(lambda x : f"{x} = ?", meta))} WHERE id = ?;", (*meta.values(), index))
+        cur.execute(f"UPDATE {CONFIG['storage']['metadata_table']} SET {', '.join(map(lambda x : f'{x} = ?', meta))} WHERE id = ?;", (*meta.values(), index))
         if cur.rowcount == 0:
-            cur.execute(f"INSERT INTO {CONFIG["storage"]["metadata_table"]} (id, {", ".join(meta)}) VALUES (?{", ?" * len(meta)});", (index, *meta.values()))
+            cur.execute(f"INSERT INTO {CONFIG['storage']['metadata_table']} (id, {', '.join(meta)}) VALUES (?{', ?' * len(meta)});", (index, *meta.values()))
 
         _CONNECTION.commit()
 
@@ -93,11 +101,11 @@ class DatabaseStorage:
     def fetch_next_index_to_add(self, meta={}) :
         cur = _CONNECTION.cursor()
         if meta:
-            cur.execute(f"SELECT MIN(id) FROM {self._table_name} WHERE id IN (SELECT id FROM {CONFIG["storage"]["metadata_table"]} WHERE {" OR ".join(map(lambda x : f"{x} != ?", meta))});", tuple(meta.values()))
+            cur.execute(f"SELECT MIN(id) FROM {self._table_name} WHERE id IN (SELECT id FROM {CONFIG['storage']['metadata_table']} WHERE {' OR '.join(map(lambda x : f'{x} != ?', meta))});", tuple(meta.values()))
             data = cur.fetchone()
 
             if not data or not data[0]:
-                cur.execute(f"SELECT MAX(id) + 1 FROM {self._table_name} WHERE id IN (SELECT id FROM {CONFIG["storage"]["metadata_table"]} WHERE {" AND ".join(map(lambda x : f"{x} = ?", meta))});", tuple(meta.values()))
+                cur.execute(f"SELECT MAX(id) + 1 FROM {self._table_name} WHERE id IN (SELECT id FROM {CONFIG['storage']['metadata_table']} WHERE {' AND '.join(map(lambda x : f'{x} = ?', meta))});", tuple(meta.values()))
                 data = cur.fetchone()
         else:
             cur.execute(f"SELECT MAX(id) + 1 FROM {self._table_name};")
@@ -110,9 +118,9 @@ class DatabaseStorage:
     def fetch_next_index_in_source_to_add(self, sources, meta={}) :
         cur = _CONNECTION.cursor()
         if meta:
-            cur.execute(f"SELECT MAX(index_in_source) + size FROM {CONFIG["storage"]["metadata_table"]} WHERE sources = '{sources}' AND id IN (SELECT id FROM {CONFIG["storage"]["metadata_table"]} WHERE {" AND ".join(map(lambda x : f"{x} = ?", meta))});", tuple(meta.values()))
+            cur.execute(f"SELECT MAX(index_in_source) + size FROM {CONFIG['storage']['metadata_table']} WHERE sources = '{sources}' AND id IN (SELECT id FROM {CONFIG['storage']['metadata_table']} WHERE {' AND '.join(map(lambda x : f'{x} = ?', meta))});", tuple(meta.values()))
         else:
-            cur.execute(f"SELECT MAX(index_in_source) + size FROM {CONFIG["storage"]["metadata_table"]} WHERE sources = '{sources}';")
+            cur.execute(f"SELECT MAX(index_in_source) + size FROM {CONFIG['storage']['metadata_table']} WHERE sources = '{sources}';")
         data = cur.fetchone()
         if data and data[0] :
             return data[0]
@@ -131,7 +139,7 @@ class DatabaseStorage:
     
 def clear_database() :
     cur = _CONNECTION.cursor()
-    cur.execute(f"DELETE FROM {CONFIG["storage"]["metadata_table"]};")
-    cur.execute(f"DELETE FROM {CONFIG["storage"]["raw_table"]};")
-    cur.execute(f"DELETE FROM {CONFIG["storage"]["cleaned_table"]};")
+    cur.execute(f"DELETE FROM {CONFIG['storage']['metadata_table']};")
+    cur.execute(f"DELETE FROM {CONFIG['storage']['raw_table']};")
+    cur.execute(f"DELETE FROM {CONFIG['storage']['cleaned_table']};")
     _CONNECTION.commit()

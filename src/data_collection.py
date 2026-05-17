@@ -143,8 +143,8 @@ def collect_data():
                     "used_for_learning": 0
                 }
                 storage.save_batch(index, batch["data"], meta)
-                LOGGER.info(f"Сохранение батча {index} резмера {batch["size"]}")
-                LOGGER.info(f"Метапараметры для батча {index}: timestamp={meta["timestamp"]}; sources={meta["sources"]}; data_collection_version={meta["data_collection_version"]}")
+                LOGGER.info(f"Сохранение батча {index} резмера {batch['size']}")
+                LOGGER.info(f"Метапараметры для батча {index}: timestamp={meta['timestamp']}; sources={meta['sources']}; data_collection_version={meta['data_collection_version']}")
                 index += 1
 
             except Exception as e:
