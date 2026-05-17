@@ -42,6 +42,7 @@ jobs:
             models/best_model.pkl
             models/encoders.pkl
             models/scaler_A.pkl
+            models/versions/*.pkl
           if-no-files-found: error
           retention-days: 90
 

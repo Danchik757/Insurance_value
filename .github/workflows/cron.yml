@@ -1,0 +1,29 @@
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+
+jobs:
+  incremental-train:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Устанавливаем прошлую модель
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          name: trained-model
+          if_no_artifact_found: ignore
+
+      - name: Incremental training
+        run: python run.py -mode "update"
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-model
+          path: |
+            models/best_model.pkl
+            models/encoders.pkl
+            models/scaler_A.pkl
+            models/versions/*.pkl
+          retention-days: 90
