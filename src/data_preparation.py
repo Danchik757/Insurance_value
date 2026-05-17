@@ -18,7 +18,7 @@ def load_data():
     # Пробуем прочитать очищенные данные из БД
     try:
         storage = DatabaseStorage(CONFIG["storage"]["cleaned_table"])
-        batches = list(storage.read())
+        batches = list(storage.read_all_not_used_for_learning())
         if batches:
             df = pd.concat(batches, ignore_index=True)
             LOGGER.info(f"Загружены данные из БД: {len(df)} строк")
