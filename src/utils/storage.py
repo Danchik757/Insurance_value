@@ -9,7 +9,7 @@ from src.utils.config import CONFIG
 
 _CONNECTION = sqlite3.connect(CONFIG["storage"]["path"])
 cur = _CONNECTION.cursor()
-cur.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG["storage"]["metadata_table"]} (id INT PRIMARY KEY, timestamp REAL NOT NULL, sources TEXT NOT NULL, index_in_source INT NOT NULL, size INT NOT NULL, data_collection_version TEXT NOT NULL, data_analysis_version TEXT DEFAULT '');")
+cur.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG['storage']['metadata_table']} (id INT PRIMARY KEY, timestamp REAL NOT NULL, sources TEXT NOT NULL, index_in_source INT NOT NULL, size INT NOT NULL, data_collection_version TEXT NOT NULL, data_analysis_version TEXT DEFAULT '');")
 _CONNECTION.commit()
 
 class DatabaseStorage:
@@ -27,9 +27,9 @@ class DatabaseStorage:
         cur.execute(f"INSERT OR REPLACE INTO {self._table_name} (id, data_json) VALUES (?, ?);", (index, data.to_json()))
 
         if meta :
-            cur.execute(f"UPDATE {CONFIG["storage"]["metadata_table"]} SET {", ".join(map(lambda x : f"{x} = ?", meta))} WHERE id = ?;", (*meta.values(), index))
+            cur.execute(f"UPDATE {CONFIG['storage']['metadata_table']} SET {', '.join(map(lambda x : f'{x} = ?', meta))} WHERE id = ?;", (*meta.values(), index))
             if cur.rowcount == 0:
-                cur.execute(f"INSERT INTO {CONFIG["storage"]["metadata_table"]} (id, {", ".join(meta)}) VALUES (?{", ?" * len(meta)});", (index, *meta.values()))
+                cur.execute(f"INSERT INTO {CONFIG['storage']['metadata_table']} (id, {', '.join(meta)}) VALUES (?{', ?' * len(meta)});", (index, *meta.values()))
 
         _CONNECTION.commit()
 
@@ -66,7 +66,7 @@ class DatabaseStorage:
 
     def fetch_next_index_in_source_to_add(self, sources) :
         cur = _CONNECTION.cursor()
-        cur.execute(f"SELECT MAX(index_in_source), size FROM {CONFIG["storage"]["metadata_table"]} WHERE sources = '{sources}';")
+        cur.execute(f"SELECT MAX(index_in_source), size FROM {CONFIG['storage']['metadata_table']} WHERE sources = '{sources}';")
         data = cur.fetchone()
         if data and data[0] and data[1] :
             return data[0] + data[1]
