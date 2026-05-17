@@ -15,4 +15,4 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Запуск полного цикла обучения
-        run: python run.py -mode "update"
+        run: python run.py
