@@ -28,9 +28,12 @@ if determined_version != "" and [i[0] - i[1] for i in zip(map(int, determined_ve
 
 _CONNECTION = sqlite3.connect(CONFIG["storage"]["path"])
 
+def _create_latest_metadata_table(cur):
+    cur.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG['storage']['metadata_table']} (id INT PRIMARY KEY, timestamp REAL NOT NULL, sources TEXT NOT NULL, index_in_source INT NOT NULL, size INT NOT NULL, data_collection_version TEXT NOT NULL, data_analysis_version TEXT DEFAULT '', used_for_learning INTEGER CHECK (used_for_learning IN (0, 1)) DEFAULT 0);")
+
 if determined_version == "" :
     cur = _CONNECTION.cursor()
-    cur.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG['storage']['metadata_table']} (id INT PRIMARY KEY, timestamp REAL NOT NULL, sources TEXT NOT NULL, index_in_source INT NOT NULL, size INT NOT NULL, data_collection_version TEXT NOT NULL, data_analysis_version TEXT DEFAULT '', used_for_learning INTEGER CHECK (used_for_learning IN (0, 1)) DEFAULT 0);")
+    _create_latest_metadata_table(cur)
     _CONNECTION.commit()
 elif determined_version == "1.0.0" :
     try :
@@ -42,7 +45,7 @@ elif determined_version == "1.0.0" :
         
         cur = _CONNECTION.cursor()
         cur.execute(f"DROP TABLE IF EXISTS {CONFIG['storage']['metadata_table']};")
-        cur.execute(f"CREATE TABLE IF NOT EXISTS {CONFIG['storage']['metadata_table']} (id INT PRIMARY KEY, timestamp REAL NOT NULL, sources TEXT NOT NULL, index_in_source INT NOT NULL, size INT NOT NULL, data_collection_version TEXT NOT NULL, data_analysis_version TEXT DEFAULT '', used_for_learning INTEGER CHECK (used_for_learning IN (0, 1)) DEFAULT 0);")
+        _create_latest_metadata_table(cur)
         _CONNECTION.commit()
 
 if _flag :
@@ -139,7 +142,8 @@ class DatabaseStorage:
     
 def clear_database() :
     cur = _CONNECTION.cursor()
-    cur.execute(f"DELETE FROM {CONFIG['storage']['metadata_table']};")
-    cur.execute(f"DELETE FROM {CONFIG['storage']['raw_table']};")
-    cur.execute(f"DELETE FROM {CONFIG['storage']['cleaned_table']};")
+    cur.execute(f"DROP TABLE IF EXISTS {CONFIG['storage']['metadata_table']};")
+    _create_latest_metadata_table(cur)
+    cur.execute(f"DROP TABLE IF EXISTS {CONFIG['storage']['raw_table']};")
+    cur.execute(f"DROP TABLE IF EXISTS {CONFIG['storage']['cleaned_table']};")
     _CONNECTION.commit()

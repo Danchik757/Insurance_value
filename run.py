@@ -115,7 +115,6 @@ class Controller:
                 if args.file:
                     logger.warning("Путь к файлу будет проигнорирован")
                 if args.mode == "update":
-                    logger.info("TestA")
                     self.model.update()
                 elif args.mode == "summary":
                     self.model.summary()
