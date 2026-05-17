@@ -13,6 +13,7 @@ storage:
   cleaned_table: "cleaned_batches"
   metadata_table: "metadata"
   cleaned_csv: "data/cleaned/cleaned_data.csv"
+  db_metadata: "db.meta"
 
 logging:
   level: "INFO"

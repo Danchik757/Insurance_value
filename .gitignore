@@ -1,4 +1,4 @@
-data/raw/*
+#data/raw/*
 !data/raw/.gitkeep
 data/cleaned/*
 !data/cleaned/.gitkeep
@@ -13,3 +13,4 @@ __pycache__/
 .DS_Store
 *.log
 *.db
+*.meta

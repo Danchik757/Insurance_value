@@ -320,35 +320,40 @@ def analyse_data():
     reference_batches = []
 
     ref_limit = CONFIG["data_analysis"]["drift_detection"]["reference_batches"]
-    batch_id = 0
+    batch_id = raw_storage.fetch_next_index_to_add(meta={"data_analysis_version":VERSION})
+    df_raw = raw_storage.read_batch(batch_id)
 
-    for df_raw in raw_storage.read():
-        quality_metrics = quality_eval.evaluate(batch_id, df_raw)
-        quality_history[batch_id] = quality_metrics
+    try :
+        while df_raw is not None :
+            quality_metrics = quality_eval.evaluate(batch_id, df_raw)
+            quality_history[batch_id] = quality_metrics
 
-        df_cleaned, cleaning_log = cleaner.clean(df_raw)
+            df_cleaned, cleaning_log = cleaner.clean(df_raw)
 
-        if CONFIG["data_analysis"]["eda"]["enabled"]:
-            eda.generate(batch_id, df_cleaned)
+            if CONFIG["data_analysis"]["eda"]["enabled"]:
+                eda.generate(batch_id, df_cleaned)
 
-        if CONFIG["data_analysis"]["feature_engineering"]["enabled"]:
-            df_features, features_list = feature_eng.create_features(df_cleaned)
-        else:
-            df_features = df_cleaned
-
-        cleaned_storage.save_batch(batch_id, df_features, {"data_analysis_version": VERSION})
-
-        if CONFIG["data_analysis"]["drift_detection"]["enabled"]:
-            if batch_id < ref_limit:
-                reference_batches.append(df_features)
-                if batch_id + 1 == ref_limit:
-                    drift_detector.set_reference(reference_batches)
+            if CONFIG["data_analysis"]["feature_engineering"]["enabled"]:
+                df_features, features_list = feature_eng.create_features(df_cleaned)
             else:
-                drift_report = drift_detector.detect_drift(df_features, batch_id)
-                if drift_report["drifts"]:
-                    logger.warning(f"Drift обнаружен в батче {batch_id}")
+                df_features = df_cleaned
 
-        batch_id += 1
+            cleaned_storage.save_batch(batch_id, df_features, {"data_analysis_version": VERSION})
+
+            if CONFIG["data_analysis"]["drift_detection"]["enabled"]:
+                if batch_id < ref_limit:
+                    reference_batches.append(df_features)
+                    if batch_id + 1 == ref_limit:
+                        drift_detector.set_reference(reference_batches)
+                else:
+                    drift_report = drift_detector.detect_drift(df_features, batch_id)
+                    if "drifts" in drift_report and drift_report["drifts"]:
+                        logger.warning(f"Drift обнаружен в батче {batch_id}")
+
+            batch_id += 1
+            df_raw = raw_storage.read_batch(batch_id)
+    except KeyboardInterrupt :
+        logger.warning(f"Обработка потока была прервана")
         
 
     html_content = """<html>

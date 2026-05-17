@@ -126,8 +126,8 @@ def collect_data():
 
     storage = DatabaseStorage(CONFIG["storage"]["raw_table"])
 
-    index = storage.fetch_next_index_to_add()
-    streamer = StreamEmulator(data_source=sources, batch_size=CONFIG["stream"]["batch_size"], delay=CONFIG["stream"]["delay_seconds"], offset=storage.fetch_next_index_in_source_to_add(sources_name))
+    index = storage.fetch_next_index_to_add(meta={"data_collection_version":VERSION})
+    streamer = StreamEmulator(data_source=sources, batch_size=CONFIG["stream"]["batch_size"], delay=CONFIG["stream"]["delay_seconds"], offset=storage.fetch_next_index_in_source_to_add(sources_name,meta={"data_collection_version":VERSION}))
 
     LOGGER.info("Data Collection начат")
     try :
@@ -138,11 +138,13 @@ def collect_data():
                     "sources": sources_name,
                     "index_in_source": batch["index_in_source"],
                     "size": batch["size"],
-                    "data_collection_version": VERSION
+                    "data_collection_version": VERSION,
+                    "data_analysis_version": "",
+                    "used_for_learning": 0
                 }
                 storage.save_batch(index, batch["data"], meta)
-                LOGGER.info(f"Сохранение батча {index} резмера {batch["size"]}")
-                LOGGER.info(f"Метапараметры для батча {index}: timestamp={meta["timestamp"]}; sources={meta["sources"]}; data_collection_version={meta["data_collection_version"]}")
+                LOGGER.info(f"Сохранение батча {index} резмера {batch['size']}")
+                LOGGER.info(f"Метапараметры для батча {index}: timestamp={meta['timestamp']}; sources={meta['sources']}; data_collection_version={meta['data_collection_version']}")
                 index += 1
 
             except Exception as e:
