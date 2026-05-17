@@ -62,6 +62,15 @@ class DatabaseStorage:
 
         _CONNECTION.commit()
 
+    def update_meta(self, index, meta):
+        cur = _CONNECTION.cursor()
+
+        cur.execute(f"UPDATE {CONFIG["storage"]["metadata_table"]} SET {", ".join(map(lambda x : f"{x} = ?", meta))} WHERE id = ?;", (*meta.values(), index))
+        if cur.rowcount == 0:
+            cur.execute(f"INSERT INTO {CONFIG["storage"]["metadata_table"]} (id, {", ".join(meta)}) VALUES (?{", ?" * len(meta)});", (index, *meta.values()))
+
+        _CONNECTION.commit()
+
     def read_batch(self, index):
         cur = _CONNECTION.cursor()
         cur.execute(f"SELECT data_json FROM {self._table_name} WHERE id = {index};")
@@ -109,6 +118,16 @@ class DatabaseStorage:
             return data[0]
 
         return 0
+    
+    def read_all_not_used_for_learning(self) :
+        i = self.fetch_next_index_to_add(meta={"used_for_learning":1})
+        while True :
+            res = self.read_batch(i)
+            if res is None :
+                break
+            self.update_meta(i, meta={"used_for_learning":1})
+            yield res
+            i += 1
     
 def clear_database() :
     cur = _CONNECTION.cursor()
