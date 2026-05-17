@@ -1,4 +1,5 @@
 import datetime
+import glob
 import json
 import os
 import pickle
@@ -118,6 +119,15 @@ def predict(input_path):
 
     model = joblib.load(best_model_path)
     df_raw = pd.read_csv(input_path)
+
+    null_ratio = df_raw.isnull().mean().mean()
+    if null_ratio > 0.3:
+        LOGGER.warning(f"Входные данные разрежены ({null_ratio:.1%} пропусков), пробуем Decision Tree")
+        dt_files = sorted(glob.glob(os.path.join(CONFIG["model_training"]["models_dir"], "decision_tree_A_*.pkl")))
+        if dt_files:
+            model = joblib.load(dt_files[-1])
+            LOGGER.info(f"Используем: {os.path.basename(dt_files[-1])}")
+
     df_processed = _preprocess_input(df_raw)
 
     # Замеряем время и память

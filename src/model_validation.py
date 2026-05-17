@@ -91,6 +91,25 @@ def validate_models():
             with open(os.path.join(REPORTS_DIR, "feature_importances.json"), "w") as f:
                 json.dump(importances, f, indent=2)
 
+    # Проверяем дрейф модели относительно предыдущего запуска
+    history_path = os.path.join(REPORTS_DIR, "training_history.json")
+    if os.path.exists(history_path):
+        with open(history_path) as f:
+            history = json.load(f)
+        if len(history) >= 1:
+            prev_mae = history[-1]["mae"]
+            drift = (best_mae - prev_mae) / (prev_mae + 1e-9)
+            if drift > 0.1:
+                LOGGER.warning(f"Model drift: MAE вырос с {prev_mae:.2f} до {best_mae:.2f} ({drift*100:.1f}%)")
+            else:
+                LOGGER.info(f"Дрейф модели в норме: {drift*100:.1f}%")
+            with open(os.path.join(REPORTS_DIR, "model_drift.json"), "w") as f:
+                json.dump({
+                    "prev_mae": round(prev_mae, 4),
+                    "current_mae": round(best_mae, 4),
+                    "drift_pct": round(drift * 100, 2)
+                }, f, indent=2)
+
     return results
 
 
