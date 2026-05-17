@@ -63,7 +63,7 @@ class Model:
         collect_data()
         analyse_data()
         prepare_data()
-        train_models()
+        train_models(incremental=True)
         validate_models()
 
         self.view.log_boolean(True, "Модель успешно дообучена", "Ошибка при дообучении модели")

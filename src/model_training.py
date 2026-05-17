@@ -82,7 +82,7 @@ def preprocess_retrain_data(old_path, new_df_raw):
     return old_df
 
 
-def train_models(retrain_path=None):
+def train_models(retrain_path=None, incremental=False):
     global LOGGER
     LOGGER = setup_logger(
         "ModelTraining",
@@ -157,6 +157,15 @@ def train_models(retrain_path=None):
                 LOGGER.info(f"Дообучаем SGD модель: {existing[-1]}")
                 sgd_model.partial_fit(X_train, y_train)
                 models["sgd"] = sgd_model
+        elif incremental:
+            existing = sorted([f for f in os.listdir(models_dir) if f"sgd_{variant}" in f and f.endswith(".pkl")])
+            if existing:
+                sgd_model = joblib.load(os.path.join(models_dir, existing[-1]))
+                LOGGER.info(f"Инкрементальное дообучение SGD: {existing[-1]}")
+                sgd_model.partial_fit(X_train, y_train)
+                models["sgd"] = sgd_model
+            else:
+                LOGGER.warning(f"SGD модель для варианта {variant} не найдена, обучаем с нуля")
 
         for name, model in models.items():
             if not (name == "sgd" and hasattr(model, "coef_")):
