@@ -1,4 +1,4 @@
-data/raw/*
+#data/raw/*
 !data/raw/.gitkeep
 data/cleaned/*
 !data/cleaned/.gitkeep
