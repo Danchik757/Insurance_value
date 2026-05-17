@@ -68,8 +68,7 @@ class Model:
         d["Data Analysis"] = {}
         d["Data Analysis"]["Число батчей очищенных данных"] = DatabaseStorage(CONFIG["storage"]["cleaned_table"]).fetch_next_index_to_add()
         d["Data Preparation"] = {}
-        volume = ceil((os.path.getsize(CONFIG["data_preparation"]["processed_a"]) + os.path.getsize(CONFIG["data_preparation"]["processed_b"])) / 1024 / 1024)
-        d["Data Preparation"]["Объем подготовленных данных"] = f"{volume} MB"
+        d["Data Preparation"]["Объем подготовленных данных"] = f"{ceil((os.path.getsize(CONFIG["data_preparation"]["processed_a"]) + os.path.getsize(CONFIG["data_preparation"]["processed_b"])) / 1024 / 1024)} MB"
         d["Model Training"] = {}
         d["Model Training"]["Число обученных моделей"] = len(list(Path('./models/versions').glob("*.pkl")))
         d["Model Validation"] = {}
