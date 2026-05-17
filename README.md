@@ -79,10 +79,13 @@ python src/model_serving.py
 # Вывести список доступных опций
 python run.py --help
 
+# Полный цикл обучения
+python run.py
+
 # Предсказание (inference)
 python run.py -mode "inference" -file "./data/raw/motor_data14-2018.csv"
 
-# Полный цикл обучения/дообучения (update)
+# Полный цикл дообучения (update)
 python run.py -mode "update"
 
 # Отчёт о состоянии системы (summary)

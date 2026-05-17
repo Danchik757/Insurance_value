@@ -13,7 +13,7 @@ from src.model_serving import predict, get_summary_report
 
 from src.utils.config import CONFIG
 from src.utils.logger import setup_logger
-from src.utils.storage import DatabaseStorage
+from src.utils.storage import DatabaseStorage, clear_database
 
 logger = setup_logger("Entry Point", log_file=CONFIG["logging"]["path"], level=CONFIG["logging"]["level"])
 
@@ -49,6 +49,16 @@ class Model:
         predict(path)
         self.view.log_path(CONFIG["model_serving"]["predictions_path"])
 
+    def full(self):
+        clear_database()
+        collect_data()
+        analyse_data()
+        prepare_data()
+        train_models()
+        validate_models()
+
+        self.view.log_boolean(True, "Модель успешно обучена", "Ошибка при обучении модели")
+
     def update(self):
         collect_data()
         analyse_data()
@@ -56,7 +66,7 @@ class Model:
         train_models()
         validate_models()
 
-        self.view.log_boolean(True, "Модель успешно обучена/дообучена", "Ошибка при обучении/дообучении модели")
+        self.view.log_boolean(True, "Модель успешно дообучена", "Ошибка при дообучении модели")
 
     def summary(self):
         self.view.log_path(get_summary_report())
@@ -90,7 +100,7 @@ class Controller:
 
     def run(self) :
         parser = argparse.ArgumentParser()
-        parser.add_argument("-mode", type=str, required=True, help="Режим работы: \"inference\", \"update\", \"summary\" или \"dashboard\"")
+        parser.add_argument("-mode", type=str, required=False, help="Режим работы: \"inference\", \"update\", \"summary\" или \"dashboard\"")
         parser.add_argument("-file", type=Path, default=None, help="Путь к файлу для обработки")
 
         args = parser.parse_args()
@@ -105,6 +115,7 @@ class Controller:
                 if args.file:
                     logger.warning("Путь к файлу будет проигнорирован")
                 if args.mode == "update":
+                    logger.info("TestA")
                     self.model.update()
                 elif args.mode == "summary":
                     self.model.summary()
@@ -112,6 +123,9 @@ class Controller:
                     self.model.dashboard()
                 else:
                     logger.error("Неправильный режим работы")
+        else:
+            logger.info("TestB")
+            self.model.full()
                 
 
 if __name__ == "__main__":
